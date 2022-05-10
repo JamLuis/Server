@@ -3,6 +3,7 @@ const bodyParser = require('koa-bodyparser');
 const Sequelize = require('sequelize');
 const config = require('./config');
 const appPrepare = require('./utils');
+const Analysis = require('./utils/analysis');
 
 let models = {};
 let sequelize = new Sequelize(config.dataBase.database, config.dataBase.username, config.dataBase.password, config.dataBase.options);
@@ -19,4 +20,7 @@ app.use(bodyParser());
 app.use(router.routes());
 //全局
 app.use(router.allowedMethods());
+
+// app.use(Analysis.EXCEL_TO_JSON('test.xlsx', ['A2', 'B2', 'C2', 'D2'], 'vertical', { 'A': 'num', 'B': 'series', 'C': 'address', 'D': 'type' }))
+
 app.listen('3000');
