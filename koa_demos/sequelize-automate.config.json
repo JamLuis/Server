@@ -1,0 +1,23 @@
+{
+  "dbOptions": {
+    "database": "newsapp",
+    "username": "zhangfeihong",
+    "password": "123456",
+    "dialect": "postgres",
+    "host": "localhost",
+    "port": 5432,
+    "logging": true,
+    "define": {
+      "timestamps": false,
+      "freezeTableName": true,
+      "createdAt": false,
+      "updatedAt": false
+    }
+  },
+  "options": {
+    "type": "js",
+    "dir": "models",
+    "tables": [],
+    "skipTables": ["user", "user_token"]
+  }
+}

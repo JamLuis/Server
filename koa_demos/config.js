@@ -1,12 +1,12 @@
 const config = {
     dataBase: {
-        database: 'test001',
-        username: 'root',
+        database: 'newsapp',
+        username: 'zhangfeihong',
         password: '123456',
         options: {
             host: 'localhost',
-            port: 3306,
-            dialect: 'mysql',
+            port: 5432,
+            dialect: 'postgres',/* one of 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'sqlite' */
             pool: {
                 max: 10,
                 min: 0,
