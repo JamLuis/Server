@@ -6,6 +6,7 @@ const appPrepare = require("./utils");
 const Analysis = require("./utils/analysis");
 const { authorityCheck } = require("./middleware/authority");
 const { logInfo, logger } = require("./middleware/log4j");
+const redisClient = require("./middleware/redis");
 
 let models = {};
 let sequelize = new Sequelize(
@@ -26,6 +27,8 @@ app.use(bodyParser());
 //设置全局变量
 app.context.db = sequelize;
 app.context.log = logger;
+
+app.context.redis = redisClient(config.redis);
 
 //log
 app.use(logInfo);

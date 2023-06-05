@@ -2,7 +2,7 @@ var aesjs = require("aes-js");
 const Joi = require("joi");
 var jwt = require("jsonwebtoken");
 const moment = require("moment");
-var svgCaptcha = require('svg-captcha');
+var svgCaptcha = require("svg-captcha");
 
 exports.LoginFn = (opt) => {
   return async function (ctx, next) {
@@ -12,12 +12,21 @@ exports.LoginFn = (opt) => {
     let message = "登陆成功",
       state = 200;
     try {
-      const rslt = await user.findOne({ where: { userName, password } });
-      if (!rslt) {
-        message = "密码或账户不正确";
+      const isChecked = await checkVerificationCode(ctx, next);
+      let token = null
+      if (!isChecked) {
+        message = "验证码错误";
         state = 400;
+      } else {
+        const rslt = await user.findOne({ where: { userName, password } });
+        if (!rslt) {
+          message = "密码或账户不正确";
+          state = 400;
+        } else {
+          token = await createToken(ctx, rslt);
+        }
       }
-      const token = await createToken(ctx, rslt);
+
       ctx.response.state = state;
       ctx.response.body = {
         success: true,
@@ -79,7 +88,7 @@ exports.LoginOutFn = (opt) => {
         // 清空历史token
         await user_token.destroy({
           where: {
-            user_id: userId
+            user_id: userId,
           },
         });
         error = null;
@@ -100,9 +109,8 @@ exports.LoginOutFn = (opt) => {
           message: "登出成功",
         };
       }
-
     } catch (err) {
-      console.log(err)
+      console.log(err);
       ctx.response.state = 500;
       ctx.response.body = {
         success: false,
@@ -118,32 +126,40 @@ exports.generateSvgCaptcha = (opt) => {
   return async function (ctx, next) {
     try {
       // 实在写不去了，太痛苦了
-    } catch (err) {
-
-    }
-  }
-}
+    } catch (err) { }
+  };
+};
 
 exports.CreateUser = (opt) => {
   return async function (ctx, next) {
     const userSource = ctx.request.body;
-    const result = userSchema.validate(userSource);
-    if (result.error) {
-      ctx.response.body = {
-        success: false,
-        data: null,
-        message: result.error,
-      };
-      return;
-    }
-    const { user } = opt.sequelize.models;
+    try {
+      const result = userSchema.validate(userSource);
+      if (result.error) {
+        ctx.response.body = {
+          success: false,
+          data: null,
+          message: result.error,
+        };
+        return;
+      }
+      const { user } = opt.sequelize.models;
 
-    var data = await user.create(userSource);
-    ctx.response.body = {
-      success: true,
-      data: null,
-      message: "新增用户成功",
-    };
+      await user.create(userSource);
+      ctx.response.body = {
+        success: true,
+        data: null,
+        message: "新增用户成功",
+      };
+    } catch (error) {
+      ctx.log.error(error);
+      ctx.response.body = {
+        success: true,
+        data: null,
+        error,
+        message: "新增用户失败",
+      };
+    }
   };
 };
 
@@ -154,6 +170,54 @@ exports.FindUser = (opt) => {
     ctx.response.body = data;
   };
 };
+
+const checkVerificationCode = async (ctx, next) => {
+  try {
+    const { id, codeText } = ctx.request.body;
+    let codeObj = await ctx.redis.get(`vcode-${id}`);
+    let isChecked = false;
+    if (codeObj) {
+      codeObj = JSON.parse(codeObj);
+      if (codeObj.text == codeText) {
+        isChecked = true;
+        ctx.redis.del(`vcode-${id}`)
+      }
+    }
+    return isChecked
+  } catch (error) {
+    ctx.log.error(error);
+    throw error
+  }
+}
+
+exports.generateVerificationCode = async (ctx, next) => {
+  try {
+    const { id } = ctx.request.body;
+    var captcha = svgCaptcha.create({
+      size: 6,
+      ignoreChars: "0o1i",
+      noise: 2,
+      color: true,
+    });
+    // captcha.text;
+    ctx.redis.set(`vcode-${id}`, JSON.stringify({ text: captcha.text, id }));
+    ctx.response.body = {
+      success: false,
+      data: {
+        code: captcha.data,
+      },
+      message: "二维码新增成功",
+    };
+  } catch (error) {
+    ctx.log.error(error);
+    ctx.response.body = {
+      success: false,
+      data: null,
+      message: "二维码新增失败",
+    };
+  }
+};
+
 const userSchema = Joi.object({
   userName: Joi.string().required(),
   phone: Joi.number(),

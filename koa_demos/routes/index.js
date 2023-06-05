@@ -9,4 +9,5 @@ module.exports = function (router, opt) {
     router.post('/logout', login.LoginOutFn(opt));
     router.post('/create/user', login.CreateUser(opt));
     router.get('/find/user', login.FindUser(opt));
+    router.post('/query/verification/code', login.generateVerificationCode);
 };

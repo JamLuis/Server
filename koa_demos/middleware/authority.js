@@ -2,9 +2,11 @@ var jwt = require("jsonwebtoken");
 const moment = require("moment");
 const PRIMARYKEY = "LOAGIN_TOKEN_KEY";
 
+const except_path_list = ["query/verification/code", "login"];
+
 async function authorityCheck(ctx, next) {
   try {
-    if (ctx.path.indexOf("login") == -1) {
+    if (except_path_list.every((path) => ctx.path.indexOf(path) == -1)) {
       const { authorization } = ctx.request.headers;
       if (authorization) {
         const { user_token } = ctx.db.models;
@@ -43,6 +45,7 @@ async function authorityCheck(ctx, next) {
       await next();
     }
   } catch (error) {
+    console.log(error)
     ctx.response.body = {
       success: false,
       data: null,
