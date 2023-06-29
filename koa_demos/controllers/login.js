@@ -10,18 +10,21 @@ exports.LoginFn = (opt) => {
     const { user } = opt.sequelize.models;
     // const transaction = await ctx.db.transaction();
     let message = "登陆成功",
+      is_success = true,
       state = 200;
     try {
       const isChecked = await checkVerificationCode(ctx, next);
-      let token = null
+      let token = null;
       if (!isChecked) {
         message = "验证码错误";
         state = 400;
+        is_success = false;
       } else {
         const rslt = await user.findOne({ where: { userName, password } });
         if (!rslt) {
           message = "密码或账户不正确";
           state = 400;
+          is_success = false;
         } else {
           token = await createToken(ctx, rslt);
         }
@@ -29,7 +32,7 @@ exports.LoginFn = (opt) => {
 
       ctx.response.state = state;
       ctx.response.body = {
-        success: true,
+        success: is_success,
         data: { token },
         message,
       };
@@ -126,7 +129,7 @@ exports.generateSvgCaptcha = (opt) => {
   return async function (ctx, next) {
     try {
       // 实在写不去了，太痛苦了
-    } catch (err) { }
+    } catch (err) {}
   };
 };
 
@@ -180,15 +183,15 @@ const checkVerificationCode = async (ctx, next) => {
       codeObj = JSON.parse(codeObj);
       if (codeObj.text == codeText) {
         isChecked = true;
-        ctx.redis.del(`vcode-${id}`)
+        ctx.redis.del(`vcode-${id}`);
       }
     }
-    return isChecked
+    return isChecked;
   } catch (error) {
     ctx.log.error(error);
-    throw error
+    throw error;
   }
-}
+};
 
 exports.generateVerificationCode = async (ctx, next) => {
   try {
@@ -216,6 +219,16 @@ exports.generateVerificationCode = async (ctx, next) => {
       message: "二维码新增失败",
     };
   }
+};
+
+exports.checkToken = async (ctx, next) => {
+  ctx.response.body = {
+    success: true,
+    data: {
+      isExpired: false
+    },
+    message: "token有效",
+  };
 };
 
 const userSchema = Joi.object({
